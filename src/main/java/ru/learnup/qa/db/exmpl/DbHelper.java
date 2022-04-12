@@ -2,11 +2,13 @@ package ru.learnup.qa.db.exmpl;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.query.Query;
 import org.hibernate.service.ServiceRegistry;
+import ru.learnup.qa.db.exmpl.model.CategoryEntity;
 import ru.learnup.qa.db.exmpl.model.GoodEntity;
 
 import java.sql.*;
@@ -26,91 +28,71 @@ public class DbHelper {
     //  Statement
     //  PreparedStatement
 
-    private Connection connection;
-    private String dbUrl = "jdbc:postgresql://127.0.0.1:5433/shop";
-    private String user = "postgres";
-    private String pass = "postgres";
+    private SessionFactory sessionFactory;
 
     public void initConnection() throws SQLException {
-        this.connection = DriverManager.getConnection(dbUrl, user, pass);
+        ServiceRegistry registry = new StandardServiceRegistryBuilder().configure().build();
+        final Metadata metadata = new MetadataSources(registry).getMetadataBuilder().build();
+
+        this.sessionFactory = metadata.getSessionFactoryBuilder().build();
     }
 
     public Collection<GoodEntity> getAllGoods() {
 
-        String sql = "SELECT * FROM goods;";
-        try (Statement statement = connection.createStatement()) {
-            final ResultSet resultSet = statement.executeQuery(sql);
-            List<GoodEntity> result = new ArrayList<>();
-            while (resultSet.next()) {
-                result.add(
-                        parseGood(resultSet));
-            }
-            return result;
-        } catch (SQLException err) {
-            err.printStackTrace();
+        try (Session session = sessionFactory.openSession()) {
+            String jpql = "from GoodEntity";
+            final Query<GoodEntity> query = session.createQuery(jpql, GoodEntity.class);
+            return query.getResultList();
         }
-        return null;
+    }
+
+    public CategoryEntity getCategoryById(int id) {
+
+        try (Session session = sessionFactory.openSession()) {
+            return session.find(CategoryEntity.class, id);
+        }
     }
 
     public GoodEntity getById(int id) {
 
-        String sql = "SELECT * FROM goods WHERE id = ?;";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, id);
-            final ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next())
-                return parseGood(resultSet);
-        } catch (SQLException err) {
-            err.printStackTrace();
+        try (Session session = sessionFactory.openSession()) {
+            return session.find(GoodEntity.class, id);
+//            String jpql = "from GoodEntity good where good.id = :id";
+//            final Query<GoodEntity> query = session.createQuery(jpql, GoodEntity.class);
+//            query.setParameter("id", id);
+//            return query.getSingleResult();
         }
-        return null;
     }
 
     public boolean addGood(GoodEntity good) {
 
-        String sql = "INSERT INTO goods(name, description) VALUES(?, ?);";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, good.getName());
-            statement.setString(2, good.getDescription());
-
-            return statement.executeUpdate() == 1;
-        } catch (SQLException err) {
-            err.printStackTrace();
+        try (Session session = sessionFactory.openSession()) {
+            final Transaction tx = session.beginTransaction();
+            session.save(good);
+            tx.commit();
+            return true;
         }
-        return false;
     }
 
     public boolean updateGood(GoodEntity good) {
-        String sql = "UPDATE goods SET name = ?, description = ? WHERE id = ?;";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, good.getName());
-            statement.setString(2, good.getDescription());
-            statement.setInt(3, good.getId());
 
-            return statement.executeUpdate() == 1;
-        } catch (SQLException err) {
-            err.printStackTrace();
+        try (Session session = sessionFactory.openSession()) {
+            final Transaction tx = session.beginTransaction();
+            session.saveOrUpdate(good);
+            tx.commit();
+            return true;
         }
-        return false;
     }
 
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM goods WHERE id = ?;";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, id);
-            return statement.executeUpdate() == 1;
 
-        } catch (SQLException err) {
-            err.printStackTrace();
+        try (Session session = sessionFactory.openSession()) {
+            final Transaction tx = session.beginTransaction();
+            final Query query = session.createNamedQuery("good_deleteById");
+            query.setParameter("id", id);
+            final boolean result = query.executeUpdate() == 1;
+            tx.commit();
+            return result;
         }
-        return false;
-    }
-
-    private GoodEntity parseGood(ResultSet resultSet) throws SQLException {
-        final int id = resultSet.getInt("id");
-        final String name = resultSet.getString("name");
-        final String description = resultSet.getString("description");
-
-        return new GoodEntity(id, name, description);
     }
 }

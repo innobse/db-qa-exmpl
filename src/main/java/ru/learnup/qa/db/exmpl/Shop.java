@@ -1,5 +1,6 @@
 package ru.learnup.qa.db.exmpl;
 
+import ru.learnup.qa.db.exmpl.model.CategoryEntity;
 import ru.learnup.qa.db.exmpl.model.GoodEntity;
 
 import java.util.Collection;
@@ -43,5 +44,12 @@ public class Shop {
     public void addGood(String name, String description) {
         dbHelper.addGood(
                 new GoodEntity(name, description));
+    }
+
+    public void printAllGoodsByCategoryId(int id) {
+        final CategoryEntity category = dbHelper.getCategoryById(id);
+        for (GoodEntity good : category.getGoods()) {
+            System.out.println(good);
+        }
     }
 }

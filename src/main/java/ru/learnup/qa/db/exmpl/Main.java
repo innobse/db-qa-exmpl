@@ -12,25 +12,6 @@ public class Main {
         Shop shop = new Shop(dbHelper);
         dbHelper.initConnection();
 
-        System.out.println("До добавления");
-        shop.printAllGoods();
-
-        System.out.println("\nДобавляем мед...");
-        shop.addGood("Мед", "Вкусный");
-
-        System.out.println("\nПосле добавления");
-        shop.printAllGoods();
-
-//        final GoodEntity target = shop.getGood(6);
-//        System.out.println("Товар, который нашли:\n" + target);
-//
-//        target.setName("Новое имя");
-//        target.setDescription("Новое описание");
-//
-//        shop.updateGood(target);
-
-//        shop.deleteGood(target);
-//
-//        shop.printAllGoods();
+        shop.printAllGoodsByCategoryId(2);
     }
 }
